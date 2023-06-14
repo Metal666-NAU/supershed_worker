@@ -1,5 +1,7 @@
 library root;
 
+import 'dart:developer';
+
 import 'package:flutter_bloc/flutter_bloc.dart' as flutter_bloc;
 
 import '../../data/client_repository.dart';

@@ -9,7 +9,15 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
     );
 
     on<Startup>((final event, final emit) async {
-      await clientRepository.connect();
+      final String? error = await clientRepository.connect();
+
+      if (error != null) {
+        log('Failed to connect: $error');
+
+        // TODO: show error message
+
+        return;
+      }
 
       final String? loginToken = await SecureStorage.loginToken.get();
 

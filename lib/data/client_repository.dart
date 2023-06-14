@@ -1,23 +1,31 @@
+import 'dart:io';
+
 import 'package:cv/cv_json.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
 class ClientRepository {
-  static const String serverAddress = 'ws://0.0.0.0:8181';
-
   WebSocketChannel? webSocketChannel;
 
-  List<void Function(AuthResponse authResponse)> authResponseHandlers =
-      const [];
+  List<void Function(AuthResponse authResponse)> authResponseHandlers = [];
 
-  Future<void> connect([final String serverAddress = serverAddress]) async {
+  Future<String?> connect([
+    final String serverAddress = '192.168.1.184',
+    final String serverPort = '8181',
+  ]) async {
     if (webSocketChannel != null) {
-      return;
+      return 'Already connected.';
     }
+    try {
+      await (webSocketChannel = WebSocketChannel.connect(
+        Uri.parse('ws://$serverAddress:$serverPort'),
+      ))
+          .ready;
 
-    await (webSocketChannel =
-            WebSocketChannel.connect(Uri.parse(serverAddress)))
-        .ready;
+      return null;
+    } catch (error) {
+      return error.toString();
+    }
   }
 
   void onAuthResponse(final void Function(AuthResponse authResponse) handler) =>
