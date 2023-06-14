@@ -1,3 +1,3 @@
-# supershed_scanner
+# supershed_worker
 
 A new Flutter project.
