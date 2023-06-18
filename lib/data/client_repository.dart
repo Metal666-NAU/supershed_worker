@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:cv/cv_json.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -18,9 +16,18 @@ class ClientRepository {
     }
     try {
       await (webSocketChannel = WebSocketChannel.connect(
-        Uri.parse('ws://$serverAddress:$serverPort'),
+        Uri.parse('ws://$serverAddress:$serverPort/worker'),
       ))
           .ready;
+
+      webSocketChannel!.stream.listen((final message) {
+        if (message is String) {
+          for (final authResponseHandler in authResponseHandlers) {
+            authResponseHandler.call(message.cv<AuthResponse>());
+          }
+        }
+        if (message is List<int>) {}
+      });
 
       return null;
     } catch (error) {
@@ -31,16 +38,12 @@ class ClientRepository {
   void onAuthResponse(final void Function(AuthResponse authResponse) handler) =>
       authResponseHandlers.add(handler);
 
-  void loginWithCredentials(final String username, final String password) =>
-      webSocketChannel!.sink.add(
-        (AuthRequest()
-              ..username.v = username
-              ..password.v = password)
-            .toJson(),
+  void loginWithCode(final String code) => webSocketChannel!.sink.add(
+        (AuthRequest()..loginCode.v = code).toJson(),
       );
 
   void loginWithToken(final String token) => webSocketChannel!.sink.add(
-        (AuthRequest()..loginToken.v = token).toJson(),
+        (AuthRequest()..authToken.v = token).toJson(),
       );
 
   Future<dynamic> stop() async {
@@ -53,18 +56,17 @@ class ClientRepository {
 }
 
 class AuthRequest extends CvModelBase {
-  final loginToken = CvField<String?>('loginToken');
-  final username = CvField<String?>('username');
-  final password = CvField<String?>('password');
+  final loginCode = CvField<String?>('loginCode');
+  final authToken = CvField<String?>('authToken');
 
   @override
-  List<CvField> get fields => [loginToken, username, password];
+  List<CvField> get fields => [loginCode, authToken];
 }
 
 class AuthResponse extends CvModelBase {
   final success = CvField<bool>('success');
-  final loginToken = CvField<String>('loginToken');
+  final authToken = CvField<String>('authToken');
 
   @override
-  List<CvField> get fields => [success, loginToken];
+  List<CvField> get fields => [success, authToken];
 }

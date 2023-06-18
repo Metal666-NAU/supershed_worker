@@ -19,7 +19,7 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
         return;
       }
 
-      final String? loginToken = await SecureStorage.loginToken.get();
+      final String? loginToken = await SecureStorage.authToken.get();
 
       if (loginToken == null) {
         emit(state.copyWith(page: () => Page.login));
@@ -31,16 +31,21 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
     });
     on<AuthReponse>((final event, final emit) async {
       if (event.authResponse.success.v!) {
-        await SecureStorage.loginToken.set(event.authResponse.loginToken.v!);
+        await SecureStorage.authToken.set(event.authResponse.authToken.v!);
 
         emit(state.copyWith(page: () => Page.home));
 
         return;
       }
 
-      await SecureStorage.loginToken.clear();
+      await SecureStorage.authToken.clear();
 
       emit(state.copyWith(page: () => Page.login));
+    });
+    on<SubmitLoginCode>((final event, final emit) {
+      clientRepository.loginWithCode(event.code);
+
+      emit(state.copyWith(page: () => Page.startup));
     });
   }
 }

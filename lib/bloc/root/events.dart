@@ -13,3 +13,9 @@ class AuthReponse extends Event {
 
   const AuthReponse(this.authResponse);
 }
+
+class SubmitLoginCode extends Event {
+  final String code;
+
+  const SubmitLoginCode(this.code);
+}
