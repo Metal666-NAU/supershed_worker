@@ -19,3 +19,21 @@ class SubmitLoginCode extends Event {
 
   const SubmitLoginCode(this.code);
 }
+
+class BeginScan extends Event {
+  const BeginScan();
+}
+
+class EndScan extends Event {
+  const EndScan();
+}
+
+class QRCodeScanned extends Event {
+  final String data;
+
+  const QRCodeScanned(this.data);
+}
+
+class Rescan extends Event {
+  const Rescan();
+}

@@ -6,6 +6,7 @@ import 'bloc/root/root.dart' as root;
 import 'data/client_repository.dart';
 import 'pages/home.dart';
 import 'pages/login.dart';
+import 'pages/scanner.dart';
 import 'pages/startup.dart';
 
 void main() {
@@ -28,6 +29,13 @@ class MainApp extends StatelessWidget {
               root.Bloc(clientRepository: context.read<ClientRepository>())
                 ..add(const root.Startup()),
           child: MaterialApp(
+            darkTheme: ThemeData.from(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: Colors.deepPurple,
+                brightness: Brightness.dark,
+              ),
+            ),
+            themeMode: ThemeMode.dark,
             home: home(),
           ),
         ),
@@ -41,6 +49,7 @@ class MainApp extends StatelessWidget {
             root.Page.startup => const StartupPage(),
             root.Page.login => const LoginPage(),
             root.Page.home => const HomePage(),
+            root.Page.scanner => const ScannnerPage(),
           },
         ),
       );
