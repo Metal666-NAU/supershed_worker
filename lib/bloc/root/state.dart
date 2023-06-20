@@ -29,21 +29,51 @@ class State {
 class ScannedProduct {
   final String id;
   final ScannedProductInfo? info;
+  final bool notFound;
 
-  const ScannedProduct(this.id, {this.info});
+  const ScannedProduct(
+    this.id, {
+    this.info,
+    this.notFound = false,
+  });
+
+  ScannedProduct copyWith({
+    final ScannedProductInfo? Function()? info,
+    final bool Function()? notFound,
+  }) =>
+      ScannedProduct(
+        id,
+        info: info == null ? this.info : info.call(),
+        notFound: notFound == null ? this.notFound : notFound.call(),
+      );
 }
 
 class ScannedProductInfo {
-  final String name;
+  final String manufacturerName;
 
-  const ScannedProductInfo(this.name);
+  const ScannedProductInfo({required this.manufacturerName});
 }
 
 class ScannedShelf {
   final String id;
   final ScannedShelfInfo? info;
+  final bool notFound;
 
-  const ScannedShelf(this.id, {this.info});
+  const ScannedShelf(
+    this.id, {
+    this.info,
+    this.notFound = false,
+  });
+
+  ScannedShelf copyWith({
+    final ScannedShelfInfo? Function()? info,
+    final bool Function()? notFound,
+  }) =>
+      ScannedShelf(
+        id,
+        info: info == null ? this.info : info.call(),
+        notFound: notFound == null ? this.notFound : notFound.call(),
+      );
 }
 
 class ScannedShelfInfo {}

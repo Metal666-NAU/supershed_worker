@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:typed_data';
+
+import 'package:binary_stream/binary_stream.dart';
 import 'package:cv/cv_json.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
@@ -5,7 +9,9 @@ import 'package:web_socket_channel/status.dart' as status;
 class ClientRepository {
   WebSocketChannel? webSocketChannel;
 
-  List<void Function(AuthResponse authResponse)> authResponseHandlers = [];
+  final authResponse = StreamController<AuthResponse>.broadcast();
+  final message = StreamController<MessageReader>.broadcast();
+  final connectionClosed = StreamController<void>.broadcast();
 
   Future<String?> connect([
     final String serverAddress = '192.168.1.184',
@@ -20,23 +26,23 @@ class ClientRepository {
       ))
           .ready;
 
-      webSocketChannel!.stream.listen((final message) {
-        if (message is String) {
-          for (final authResponseHandler in authResponseHandlers) {
-            authResponseHandler.call(message.cv<AuthResponse>());
+      webSocketChannel!.stream.listen(
+        (final message) {
+          if (message is String) {
+            authResponse.add(message.cv<AuthResponse>());
           }
-        }
-        if (message is List<int>) {}
-      });
+          if (message is List<int>) {
+            this.message.add(MessageReader(Uint8List.fromList(message)));
+          }
+        },
+        onDone: () => connectionClosed.add(null),
+      );
 
       return null;
     } catch (error) {
       return error.toString();
     }
   }
-
-  void onAuthResponse(final void Function(AuthResponse authResponse) handler) =>
-      authResponseHandlers.add(handler);
 
   void loginWithCode(final String code) => webSocketChannel!.sink.add(
         (AuthRequest()..loginCode.v = code).toJson(),
@@ -46,12 +52,37 @@ class ClientRepository {
         (AuthRequest()..authToken.v = token).toJson(),
       );
 
+  void sendProductInfo(final String productId) => send(
+        OutgoingMessages.productInfo,
+        (final binaryStream) => binaryStream.writeString(productId),
+      );
+
+  void sendShelfInfo(final String shelfId) => send(
+        OutgoingMessages.shelfInfo,
+        (final binaryStream) => binaryStream.writeString(shelfId),
+      );
+
+  void send(
+    final OutgoingMessages command, [
+    final void Function(BinaryStream binaryStream)? data,
+  ]) {
+    final binaryStream = BinaryStream();
+
+    binaryStream.writeByte(command.index);
+
+    data?.call(binaryStream);
+
+    webSocketChannel!.sink.add(binaryStream.binary);
+  }
+
   Future<dynamic> stop() async {
     if (webSocketChannel == null) {
       return;
     }
 
     await webSocketChannel!.sink.close(status.goingAway);
+
+    webSocketChannel = null;
   }
 }
 
@@ -69,4 +100,26 @@ class AuthResponse extends CvModelBase {
 
   @override
   List<CvField> get fields => [success, authToken];
+}
+
+class MessageReader {
+  late final IncomingMessages? command;
+  late final BinaryStream data;
+
+  MessageReader(final List<int> rawData) {
+    data = BinaryStream()..binary = rawData;
+    command = IncomingMessages.values.elementAtOrNull(data.readByte());
+  }
+}
+
+enum IncomingMessages {
+  productNotFound,
+  productInfo,
+  shelfInfo,
+}
+
+enum OutgoingMessages {
+  productInfo,
+  shelfInfo,
+  scanResult,
 }

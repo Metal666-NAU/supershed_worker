@@ -127,7 +127,7 @@ class ScannnerPage extends StatelessWidget {
     final Rect scanRect,
   ) =>
       Positioned(
-        top: scanRect.top,
+        top: scanRect.top - MediaQuery.of(context).padding.top,
         left: scanRect.left,
         child: Container(
           width: scanRect.width,
@@ -155,27 +155,62 @@ class ScannnerPage extends StatelessWidget {
       );
 
   Widget bottomPanel(final BuildContext context) {
-    Widget infoCard(final Widget? child) => Card(
-          child: Padding(
-            padding: const EdgeInsets.all(15),
-            child: child ??
-                const Row(
-                  children: [
-                    Text('Loading information...'),
-                    SizedBox(width: 15),
-                    SizedBox.square(
-                      dimension: 25,
-                      child: CircularProgressIndicator(),
-                    ),
-                  ],
-                ),
-          ),
-        );
+    Widget infoCard(
+      final Widget Function() child,
+      final bool isLoading,
+      final bool showRescanButton,
+      final bool notFound,
+    ) {
+      Widget loadingMessage() => const Row(
+            children: [
+              Text('Loading information...'),
+              SizedBox(width: 15),
+              SizedBox.square(
+                dimension: 25,
+                child: CircularProgressIndicator(),
+              ),
+            ],
+          );
 
-    Widget rescanButton() => TextButton(
-          onPressed: () => context.read<root.Bloc>().add(const root.Rescan()),
-          child: const Text('Rescan'),
-        );
+      Widget notFoundError() => Row(
+            children: [
+              Icon(
+                Icons.error,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Product not found!',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          );
+
+      Widget rescanButton() => TextButton(
+            onPressed: () => context.read<root.Bloc>().add(const root.Rescan()),
+            child: const Text('Rescan'),
+          );
+
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(15),
+          child: Row(
+            children: [
+              Expanded(
+                child: notFound
+                    ? notFoundError()
+                    : isLoading
+                        ? loadingMessage()
+                        : child(),
+              ),
+              if (showRescanButton && (!isLoading || notFound)) rescanButton(),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -195,36 +230,30 @@ class ScannnerPage extends StatelessWidget {
             children: [
               if (state.scannedProduct != null)
                 infoCard(
-                  state.scannedProduct!.info == null
-                      ? null
-                      : Row(
-                          children: [
-                            Column(
-                              children: [
-                                const Text('Scanned product:'),
-                                Text(state.scannedProduct!.info!.name),
-                                Text(state.scannedProduct!.id),
-                              ],
-                            ),
-                            if (state.scannedShelf == null) rescanButton(),
-                          ],
-                        ),
+                  () => Column(
+                    children: [
+                      const Text('Scanned product:'),
+                      Text(
+                        state.scannedProduct!.info!.manufacturerName,
+                      ),
+                      Text(state.scannedProduct!.id),
+                    ],
+                  ),
+                  state.scannedProduct!.info == null,
+                  state.scannedShelf == null,
+                  state.scannedProduct!.notFound,
                 ),
               if (state.scannedShelf != null)
                 infoCard(
-                  state.scannedShelf!.info == null
-                      ? null
-                      : Row(
-                          children: [
-                            Column(
-                              children: [
-                                const Text('Scanned shelf:'),
-                                Text(state.scannedShelf!.id),
-                              ],
-                            ),
-                            rescanButton(),
-                          ],
-                        ),
+                  () => Column(
+                    children: [
+                      const Text('Scanned shelf:'),
+                      Text(state.scannedShelf!.id),
+                    ],
+                  ),
+                  state.scannedShelf == null,
+                  true,
+                  state.scannedShelf!.notFound,
                 ),
               if (state.scannedProduct == null || state.scannedShelf == null)
                 Text(

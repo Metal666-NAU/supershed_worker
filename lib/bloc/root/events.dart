@@ -14,6 +14,16 @@ class AuthReponse extends Event {
   const AuthReponse(this.authResponse);
 }
 
+class Message extends Event {
+  final MessageReader messageReader;
+
+  const Message(this.messageReader);
+}
+
+class ConnectionClosed extends Event {
+  const ConnectionClosed();
+}
+
 class SubmitLoginCode extends Event {
   final String code;
 

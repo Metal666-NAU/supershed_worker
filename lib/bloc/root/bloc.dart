@@ -4,8 +4,14 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
   final ClientRepository clientRepository;
 
   Bloc({required this.clientRepository}) : super(const State()) {
-    clientRepository.onAuthResponse(
+    clientRepository.authResponse.stream.listen(
       (final AuthResponse authResponse) => add(AuthReponse(authResponse)),
+    );
+    clientRepository.message.stream.listen(
+      (final messageReader) => add(Message(messageReader)),
+    );
+    clientRepository.connectionClosed.stream.listen(
+      (final _) => add(const ConnectionClosed()),
     );
 
     on<Startup>((final event, final emit) async {
@@ -42,6 +48,60 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
 
       emit(state.copyWith(page: () => Page.login));
     });
+    on<Message>((final event, final emit) {
+      log('incoming message: ${event.messageReader.command}');
+      switch (event.messageReader.command) {
+        case IncomingMessages.productNotFound:
+          {
+            emit(
+              state.copyWith(
+                scannedProduct: () =>
+                    state.scannedProduct?.copyWith(notFound: () => true),
+              ),
+            );
+
+            break;
+          }
+        case IncomingMessages.productInfo:
+          {
+            final manufacturerName = event.messageReader.data.readString();
+
+            emit(
+              state.copyWith(
+                scannedProduct: () => state.scannedProduct?.copyWith(
+                  info: () =>
+                      ScannedProductInfo(manufacturerName: manufacturerName),
+                ),
+              ),
+            );
+
+            break;
+          }
+        case IncomingMessages.shelfInfo:
+          {
+            break;
+          }
+        case null:
+          {
+            break;
+          }
+      }
+    });
+    on<ConnectionClosed>(
+      (final event, final emit) async {
+        emit(
+          state.copyWith(
+            page: () => Page.startup,
+            scannedProduct: () => null,
+            scannedShelf: () => null,
+          ),
+        );
+
+        await clientRepository.stop();
+
+        add(const Startup());
+      },
+    );
     on<SubmitLoginCode>((final event, final emit) {
       clientRepository.loginWithCode(event.code);
 
@@ -73,11 +133,27 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
       if (state.scannedProduct == null) {
         emit(state.copyWith(scannedProduct: () => ScannedProduct(event.data)));
 
+        clientRepository.sendProductInfo(event.data);
+
+        // clientRepository.send(
+        //   OutgoingMessages.productInfo,
+        //   compose: (final messageComposer) =>
+        //       messageComposer.putString(event.data),
+        // );
+
         return;
       }
 
       if (state.scannedShelf == null) {
         emit(state.copyWith(scannedShelf: () => ScannedShelf(event.data)));
+
+        clientRepository.sendShelfInfo(event.data);
+
+        // clientRepository.send(
+        //   OutgoingMessages.shelfInfo,
+        //   compose: (final messageComposer) =>
+        //       messageComposer.putString(event.data),
+        // );
 
         return;
       }

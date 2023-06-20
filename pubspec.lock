@@ -25,6 +25,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
+  binary_stream:
+    dependency: "direct main"
+    description:
+      name: binary_stream
+      sha256: "947997671b185a4fd4e20803f4ce65df2cc1c88113698e8a9bee6e5ee7cd720c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.2"
   bloc:
     dependency: transitive
     description:
