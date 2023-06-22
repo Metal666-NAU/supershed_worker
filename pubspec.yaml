@@ -15,6 +15,7 @@ dependencies:
   flutter_bloc: ^8.1.3
   flutter_hooks: ^0.18.6
   flutter_secure_storage: ^8.0.0
+  flutter_spinbox: ^0.13.1
   mason_cli: ^0.1.0-dev.50
   mobile_scanner: ^3.2.0
   pinput: ^2.2.31

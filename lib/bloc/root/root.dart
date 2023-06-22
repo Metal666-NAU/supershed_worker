@@ -2,6 +2,7 @@ library root;
 
 import 'dart:developer';
 
+import 'package:binary_stream/binary_stream.dart';
 import 'package:flutter_bloc/flutter_bloc.dart' as flutter_bloc;
 import 'package:vibration/vibration.dart';
 

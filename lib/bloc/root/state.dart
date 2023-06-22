@@ -3,80 +3,89 @@ part of 'root.dart';
 class State {
   final Page page;
   final ScannedProduct? scannedProduct;
-  final ScannedShelf? scannedShelf;
 
   const State({
     this.page = Page.startup,
     this.scannedProduct,
-    this.scannedShelf,
   });
 
   State copyWith({
     final Page Function()? page,
     final ScannedProduct? Function()? scannedProduct,
-    final ScannedShelf? Function()? scannedShelf,
   }) =>
       State(
         page: page == null ? this.page : page.call(),
         scannedProduct: scannedProduct == null
             ? this.scannedProduct
             : scannedProduct.call(),
-        scannedShelf:
-            scannedShelf == null ? this.scannedShelf : scannedShelf.call(),
       );
 }
 
 class ScannedProduct {
   final String id;
   final ScannedProductInfo? info;
-  final bool notFound;
 
   const ScannedProduct(
     this.id, {
     this.info,
-    this.notFound = false,
   });
 
   ScannedProduct copyWith({
     final ScannedProductInfo? Function()? info,
-    final bool Function()? notFound,
   }) =>
       ScannedProduct(
         id,
         info: info == null ? this.info : info.call(),
-        notFound: notFound == null ? this.notFound : notFound.call(),
       );
 }
 
 class ScannedProductInfo {
-  final String manufacturerName;
+  final double width;
+  final double length;
+  final double height;
+  final String manufacturer;
+  final String rackId;
+  final int shelf;
+  final int spot;
+  final String category;
+  final String name;
 
-  const ScannedProductInfo({required this.manufacturerName});
-}
-
-class ScannedShelf {
-  final String id;
-  final ScannedShelfInfo? info;
-  final bool notFound;
-
-  const ScannedShelf(
-    this.id, {
-    this.info,
-    this.notFound = false,
+  const ScannedProductInfo({
+    required this.width,
+    required this.length,
+    required this.height,
+    required this.manufacturer,
+    required this.rackId,
+    required this.shelf,
+    required this.spot,
+    required this.category,
+    required this.name,
   });
 
-  ScannedShelf copyWith({
-    final ScannedShelfInfo? Function()? info,
-    final bool Function()? notFound,
+  ScannedProductInfo copyWith({
+    final double Function()? width,
+    final double Function()? length,
+    final double Function()? height,
+    final String Function()? manufacturer,
+    final String Function()? rackId,
+    final int Function()? shelf,
+    final int Function()? spot,
+    final String Function()? category,
+    final String Function()? name,
   }) =>
-      ScannedShelf(
-        id,
-        info: info == null ? this.info : info.call(),
-        notFound: notFound == null ? this.notFound : notFound.call(),
+      ScannedProductInfo(
+        width: width == null ? this.width : width.call(),
+        length: length == null ? this.length : length.call(),
+        height: height == null ? this.height : height.call(),
+        manufacturer:
+            manufacturer == null ? this.manufacturer : manufacturer.call(),
+        rackId: rackId == null ? this.rackId : rackId.call(),
+        shelf: shelf == null ? this.shelf : shelf.call(),
+        spot: spot == null ? this.spot : spot.call(),
+        category: category == null ? this.category : category.call(),
+        name: name == null ? this.name : name.call(),
       );
 }
-
-class ScannedShelfInfo {}
 
 enum Page {
   startup,

@@ -52,14 +52,36 @@ class ClientRepository {
         (AuthRequest()..authToken.v = token).toJson(),
       );
 
-  void sendProductInfo(final String productId) => send(
-        OutgoingMessages.productInfo,
+  void sendGetProductInfo(final String productId) => send(
+        OutgoingMessages.getPoductInfo,
         (final binaryStream) => binaryStream.writeString(productId),
       );
 
-  void sendShelfInfo(final String shelfId) => send(
-        OutgoingMessages.shelfInfo,
-        (final binaryStream) => binaryStream.writeString(shelfId),
+  void sendUpdateProductInfo(
+    final String productId,
+    final double productWidth,
+    final double productLength,
+    final double productHeight,
+    final String productManufacturer,
+    final String rackId,
+    final int productShelf,
+    final int productSpot,
+    final String productCategory,
+    final String productName,
+  ) =>
+      send(
+        OutgoingMessages.updatePoductInfo,
+        (final binaryStream) => binaryStream
+          ..writeString(productId)
+          ..writeFloatLE(productWidth)
+          ..writeFloatLE(productLength)
+          ..writeFloatLE(productHeight)
+          ..writeString(productManufacturer)
+          ..writeString(rackId)
+          ..writeIntLE(productShelf)
+          ..writeIntLE(productSpot)
+          ..writeString(productCategory)
+          ..writeString(productName),
       );
 
   void send(
@@ -113,13 +135,10 @@ class MessageReader {
 }
 
 enum IncomingMessages {
-  productNotFound,
   productInfo,
-  shelfInfo,
 }
 
 enum OutgoingMessages {
-  productInfo,
-  shelfInfo,
-  scanResult,
+  getPoductInfo,
+  updatePoductInfo,
 }

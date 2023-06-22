@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:flutter_spinbox/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../bloc/root/root.dart' as root;
 
-class ScannnerPage extends StatelessWidget {
+class ScannnerPage extends HookWidget {
   const ScannnerPage({super.key});
 
   @override
   Widget build(final context) {
+    final nameController = useTextEditingController();
+    final categoryController = useTextEditingController();
+
     final Size pageSize = MediaQuery.of(context).size;
 
     final scanRectSide = pageSize.width / 1.5;
@@ -21,17 +26,57 @@ class ScannnerPage extends StatelessWidget {
     );
 
     return pageRoot(
-      scanner(context, scanRect),
-      overlay(scanRect),
-      controls(
-        backButton(context),
-        scanWindowFrame(context, scanRect),
-        bottomPanel(context),
+      scannerContainer(
+        scanner(context, scanRect),
+        overlay(scanRect),
+        controls(
+          backButton(context),
+          scanWindowFrame(context, scanRect),
+        ),
+      ),
+      productInfoPanel(
+        context,
+        nameController,
+        categoryController,
       ),
     );
   }
 
   Widget pageRoot(
+    final Widget scannerContainer,
+    final Widget productInfoPanel,
+  ) =>
+      BlocBuilder<root.Bloc, root.State>(
+        buildWhen: (final previous, final current) =>
+            (previous.scannedProduct == null &&
+                current.scannedProduct != null) ||
+            (previous.scannedProduct != null && current.scannedProduct == null),
+        builder: (final context, final state) => Stack(
+          children: [
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              top: state.scannedProduct == null ? 0 : -200,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: scannerContainer,
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOutQuart,
+              top: state.scannedProduct == null
+                  ? MediaQuery.of(context).size.height - 75
+                  : 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: productInfoPanel,
+            ),
+          ],
+        ),
+      );
+
+  Widget scannerContainer(
     final Widget scanner,
     final Widget overlay,
     final Widget controls,
@@ -75,6 +120,7 @@ class ScannnerPage extends StatelessWidget {
         child: ColoredBox(
           color: Colors.transparent,
           child: Stack(
+            fit: StackFit.passthrough,
             children: [
               Positioned(
                 top: scanRect.top,
@@ -96,7 +142,6 @@ class ScannnerPage extends StatelessWidget {
   Widget controls(
     final Widget backButton,
     final Widget scanWindowFrame,
-    final Widget bottomPanel,
   ) =>
       SafeArea(
         child: Stack(
@@ -106,12 +151,6 @@ class ScannnerPage extends StatelessWidget {
               child: backButton,
             ),
             scanWindowFrame,
-            Positioned(
-              left: 0,
-              bottom: 0,
-              right: 0,
-              child: bottomPanel,
-            ),
           ],
         ),
       );
@@ -154,121 +193,218 @@ class ScannnerPage extends StatelessWidget {
         ),
       );
 
-  Widget bottomPanel(final BuildContext context) {
-    Widget infoCard(
-      final Widget Function() child,
-      final bool isLoading,
-      final bool showRescanButton,
-      final bool notFound,
-    ) {
-      Widget loadingMessage() => const Row(
-            children: [
-              Text('Loading information...'),
-              SizedBox(width: 15),
-              SizedBox.square(
-                dimension: 25,
-                child: CircularProgressIndicator(),
-              ),
-            ],
-          );
-
-      Widget notFoundError() => Row(
-            children: [
-              Icon(
-                Icons.error,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'Product not found!',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
-            ],
-          );
-
-      Widget rescanButton() => TextButton(
-            onPressed: () => context.read<root.Bloc>().add(const root.Rescan()),
-            child: const Text('Rescan'),
-          );
-
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(
-            children: [
-              Expanded(
-                child: notFound
-                    ? notFoundError()
-                    : isLoading
-                        ? loadingMessage()
-                        : child(),
-              ),
-              if (showRescanButton && (!isLoading || notFound)) rescanButton(),
-            ],
+  Widget productInfoPanel(
+    final BuildContext context,
+    final TextEditingController nameController,
+    final TextEditingController categoryController,
+  ) {
+    Widget propertyHeader(final String text) => Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: Text(
+            '$text: ',
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
-        ),
-      );
-    }
+        );
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: BlocBuilder<root.Bloc, root.State>(
-          buildWhen: (final previous, final current) =>
-              previous.scannedProduct != current.scannedProduct ||
-              previous.scannedShelf != current.scannedShelf,
-          builder: (final context, final state) => Column(
+    Widget indentedBox(final String header, final Widget child) => Padding(
+          padding: const EdgeInsets.all(10),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (state.scannedProduct != null)
-                infoCard(
-                  () => Column(
-                    children: [
-                      const Text('Scanned product:'),
-                      Text(
-                        state.scannedProduct!.info!.manufacturerName,
-                      ),
-                      Text(state.scannedProduct!.id),
-                    ],
-                  ),
-                  state.scannedProduct!.info == null,
-                  state.scannedShelf == null,
-                  state.scannedProduct!.notFound,
-                ),
-              if (state.scannedShelf != null)
-                infoCard(
-                  () => Column(
-                    children: [
-                      const Text('Scanned shelf:'),
-                      Text(state.scannedShelf!.id),
-                    ],
-                  ),
-                  state.scannedShelf == null,
-                  true,
-                  state.scannedShelf!.notFound,
-                ),
-              if (state.scannedProduct == null || state.scannedShelf == null)
-                Text(
-                  'Please scan a ${state.scannedProduct == null ? 'product' : 'shelf'}...',
+              Text(
+                header,
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall!
+                    .copyWith(fontSize: 22),
+              ),
+              const SizedBox(height: 10),
+              child,
+            ],
+          ),
+        );
+
+    Widget slider(
+      final double value,
+      final void Function(double value) onChanged,
+    ) =>
+        Row(
+          children: [
+            Text(value.toString()),
+            Expanded(
+              child: Slider(
+                min: 0.1,
+                max: 2,
+                value: value,
+                onChanged: onChanged,
+              ),
+            ),
+          ],
+        );
+
+    return BlocBuilder<root.Bloc, root.State>(
+      buildWhen: (final previous, final current) =>
+          (previous.scannedProduct == null && current.scannedProduct != null) ||
+          (previous.scannedProduct != null && current.scannedProduct == null),
+      builder: (final context, final state) => AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: state.scannedProduct == null
+              ? const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                )
+              : null,
+        ),
+        child: BlocBuilder<root.Bloc, root.State>(
+          buildWhen: (final previous, final current) =>
+              previous.scannedProduct != current.scannedProduct,
+          builder: (final context, final state) {
+            if (state.scannedProduct == null) {
+              return Center(
+                child: Text(
+                  'Please scan a product...',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
-              if (state.scannedProduct != null && state.scannedShelf != null)
-                ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.upload),
-                  label: const Text('Submit'),
+              );
+            }
+
+            if (state.scannedProduct!.info != null) {
+              final nameSelection = nameController.selection;
+              nameController.text = state.scannedProduct!.info!.name;
+              nameController.selection = nameSelection;
+
+              final categorySelection = categoryController.selection;
+              categoryController.text = state.scannedProduct!.info!.category;
+              categoryController.selection = categorySelection;
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Product Id: ${state.scannedProduct!.id}',
+                      textAlign: TextAlign.center,
+                    ),
+                    if (state.scannedProduct!.info == null)
+                      const Expanded(
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    if (state.scannedProduct!.info != null)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.max,
+                            children: [
+                              propertyHeader('Name'),
+                              TextField(
+                                controller: nameController,
+                                onChanged: (final value) => context
+                                    .read<root.Bloc>()
+                                    .add(root.SetProductName(value)),
+                              ),
+                              propertyHeader('Category'),
+                              TextField(
+                                controller: categoryController,
+                                onChanged: (final value) => context
+                                    .read<root.Bloc>()
+                                    .add(root.SetProductCategory(value)),
+                              ),
+                              propertyHeader('Location'),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: indentedBox(
+                                      'Shelf',
+                                      SpinBox(
+                                        min: 0,
+                                        max: double.infinity,
+                                        value: state.scannedProduct!.info!.shelf
+                                            .toDouble(),
+                                        onChanged: (final value) =>
+                                            context.read<root.Bloc>().add(
+                                                  root.SetProductShelf(
+                                                    value.toInt(),
+                                                  ),
+                                                ),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: indentedBox(
+                                      'Spot',
+                                      SpinBox(
+                                        min: 1,
+                                        max: double.infinity,
+                                        value: state.scannedProduct!.info!.spot
+                                            .toDouble(),
+                                        onChanged: (final value) =>
+                                            context.read<root.Bloc>().add(
+                                                  root.SetProductSpot(
+                                                    value.toInt(),
+                                                  ),
+                                                ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              propertyHeader('Size'),
+                              slider(
+                                state.scannedProduct!.info!.width,
+                                (final value) => context
+                                    .read<root.Bloc>()
+                                    .add(root.SetProductWidth(value)),
+                              ),
+                              slider(
+                                state.scannedProduct!.info!.length,
+                                (final value) => context
+                                    .read<root.Bloc>()
+                                    .add(root.SetProductLength(value)),
+                              ),
+                              slider(
+                                state.scannedProduct!.info!.height,
+                                (final value) => context
+                                    .read<root.Bloc>()
+                                    .add(root.SetProductHeight(value)),
+                              ),
+                              Center(
+                                child: ElevatedButton.icon(
+                                  onPressed: () => context
+                                      .read<root.Bloc>()
+                                      .add(const root.UpdateProduct()),
+                                  icon: const Icon(Icons.send),
+                                  label: const Text('Update'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    TextButton(
+                      onPressed: () =>
+                          context.read<root.Bloc>().add(const root.Rescan()),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.keyboard_double_arrow_down),
+                          Text('Back'),
+                          Icon(Icons.keyboard_double_arrow_down),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

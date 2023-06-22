@@ -49,36 +49,39 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
       emit(state.copyWith(page: () => Page.login));
     });
     on<Message>((final event, final emit) {
-      log('incoming message: ${event.messageReader.command}');
-      switch (event.messageReader.command) {
-        case IncomingMessages.productNotFound:
-          {
-            emit(
-              state.copyWith(
-                scannedProduct: () =>
-                    state.scannedProduct?.copyWith(notFound: () => true),
-              ),
-            );
+      final BinaryStream data = event.messageReader.data;
 
-            break;
-          }
+      switch (event.messageReader.command) {
         case IncomingMessages.productInfo:
           {
-            final manufacturerName = event.messageReader.data.readString();
+            final productWidth = data.readFloatLE();
+            final productLength = data.readFloatLE();
+            final productHeight = data.readFloatLE();
+            final productManufacturer = data.readString();
+            final rackId = data.readString();
+            final productShelf = data.readIntLE();
+            final productSpot = data.readIntLE();
+            final productCategory = data.readString();
+            final productName = data.readString();
 
             emit(
               state.copyWith(
                 scannedProduct: () => state.scannedProduct?.copyWith(
-                  info: () =>
-                      ScannedProductInfo(manufacturerName: manufacturerName),
+                  info: () => ScannedProductInfo(
+                    width: roundProductSize(productWidth),
+                    length: roundProductSize(productLength),
+                    height: roundProductSize(productHeight),
+                    manufacturer: productManufacturer,
+                    rackId: rackId,
+                    shelf: productShelf,
+                    spot: productSpot,
+                    category: productCategory,
+                    name: productName,
+                  ),
                 ),
               ),
             );
 
-            break;
-          }
-        case IncomingMessages.shelfInfo:
-          {
             break;
           }
         case null:
@@ -93,7 +96,6 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
           state.copyWith(
             page: () => Page.startup,
             scannedProduct: () => null,
-            scannedShelf: () => null,
           ),
         );
 
@@ -116,13 +118,11 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
         state.copyWith(
           page: () => Page.home,
           scannedProduct: () => null,
-          scannedShelf: () => null,
         ),
       ),
     );
     on<QRCodeScanned>((final event, final emit) async {
-      if (event.data == state.scannedProduct?.id ||
-          event.data == state.scannedShelf?.id) {
+      if (event.data == state.scannedProduct?.id) {
         return;
       }
 
@@ -133,39 +133,108 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
       if (state.scannedProduct == null) {
         emit(state.copyWith(scannedProduct: () => ScannedProduct(event.data)));
 
-        clientRepository.sendProductInfo(event.data);
-
-        // clientRepository.send(
-        //   OutgoingMessages.productInfo,
-        //   compose: (final messageComposer) =>
-        //       messageComposer.putString(event.data),
-        // );
-
-        return;
-      }
-
-      if (state.scannedShelf == null) {
-        emit(state.copyWith(scannedShelf: () => ScannedShelf(event.data)));
-
-        clientRepository.sendShelfInfo(event.data);
-
-        // clientRepository.send(
-        //   OutgoingMessages.shelfInfo,
-        //   compose: (final messageComposer) =>
-        //       messageComposer.putString(event.data),
-        // );
+        clientRepository.sendGetProductInfo(event.data);
 
         return;
       }
     });
-    on<Rescan>((final event, final emit) {
-      if (state.scannedShelf == null) {
-        emit(state.copyWith(scannedProduct: () => null));
+    on<SetProductName>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () =>
+                state.scannedProduct?.info?.copyWith(name: () => event.name),
+          ),
+        ),
+      ),
+    );
+    on<SetProductCategory>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () => state.scannedProduct?.info
+                ?.copyWith(category: () => event.category),
+          ),
+        ),
+      ),
+    );
+    on<SetProductShelf>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () =>
+                state.scannedProduct?.info?.copyWith(shelf: () => event.shelf),
+          ),
+        ),
+      ),
+    );
+    on<SetProductSpot>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () =>
+                state.scannedProduct?.info?.copyWith(spot: () => event.spot),
+          ),
+        ),
+      ),
+    );
+    on<SetProductWidth>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () => state.scannedProduct?.info?.copyWith(
+              width: () => roundProductSize(event.width),
+            ),
+          ),
+        ),
+      ),
+    );
+    on<SetProductLength>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () => state.scannedProduct?.info?.copyWith(
+              length: () => roundProductSize(event.length),
+            ),
+          ),
+        ),
+      ),
+    );
+    on<SetProductHeight>(
+      (final event, final emit) => emit(
+        state.copyWith(
+          scannedProduct: () => state.scannedProduct?.copyWith(
+            info: () => state.scannedProduct?.info?.copyWith(
+              height: () => roundProductSize(event.height),
+            ),
+          ),
+        ),
+      ),
+    );
+    on<UpdateProduct>(
+      (final event, final emit) {
+        final ScannedProductInfo info = state.scannedProduct!.info!;
 
-        return;
-      }
-
-      emit(state.copyWith(scannedShelf: () => null));
-    });
+        clientRepository.sendUpdateProductInfo(
+          state.scannedProduct!.id,
+          info.width,
+          info.length,
+          info.height,
+          info.manufacturer,
+          info.rackId,
+          info.shelf,
+          info.spot,
+          info.category,
+          info.name,
+        );
+      },
+    );
+    on<Rescan>(
+      (final event, final emit) =>
+          emit(state.copyWith(scannedProduct: () => null)),
+    );
   }
+
+  double roundProductSize(final double dimension) =>
+      double.parse(dimension.toStringAsFixed(2));
 }
