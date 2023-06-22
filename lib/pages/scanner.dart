@@ -225,11 +225,13 @@ class ScannnerPage extends HookWidget {
         );
 
     Widget slider(
+      final String header,
       final double value,
       final void Function(double value) onChanged,
     ) =>
         Row(
           children: [
+            Text('$header: '),
             Text(value.toString()),
             Expanded(
               child: Slider(
@@ -358,18 +360,21 @@ class ScannnerPage extends HookWidget {
                               ),
                               propertyHeader('Size'),
                               slider(
+                                'Width',
                                 state.scannedProduct!.info!.width,
                                 (final value) => context
                                     .read<root.Bloc>()
                                     .add(root.SetProductWidth(value)),
                               ),
                               slider(
+                                'Length',
                                 state.scannedProduct!.info!.length,
                                 (final value) => context
                                     .read<root.Bloc>()
                                     .add(root.SetProductLength(value)),
                               ),
                               slider(
+                                'Height',
                                 state.scannedProduct!.info!.height,
                                 (final value) => context
                                     .read<root.Bloc>()

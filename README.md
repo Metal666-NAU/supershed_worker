@@ -1,3 +1,3 @@
 # supershed_worker
 
-A new Flutter project.
+The Worker App for the SuperShed project.
