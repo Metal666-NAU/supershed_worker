@@ -2,19 +2,30 @@ part of 'root.dart';
 
 class State {
   final Page page;
+  final String? serverAddress;
+  final String? serverConnectionError;
   final ScannedProduct? scannedProduct;
 
   const State({
     this.page = Page.startup,
+    this.serverAddress,
+    this.serverConnectionError,
     this.scannedProduct,
   });
 
   State copyWith({
     final Page Function()? page,
+    final String? Function()? serverAddress,
+    final String? Function()? serverConnectionError,
     final ScannedProduct? Function()? scannedProduct,
   }) =>
       State(
         page: page == null ? this.page : page.call(),
+        serverAddress:
+            serverAddress == null ? this.serverAddress : serverAddress.call(),
+        serverConnectionError: serverConnectionError == null
+            ? this.serverConnectionError
+            : serverConnectionError.call(),
         scannedProduct: scannedProduct == null
             ? this.scannedProduct
             : scannedProduct.call(),
@@ -89,6 +100,7 @@ class ScannedProductInfo {
 
 enum Page {
   startup,
+  connectionLost,
   login,
   home,
   scanner,

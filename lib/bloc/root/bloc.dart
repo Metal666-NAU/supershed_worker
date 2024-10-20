@@ -1,43 +1,94 @@
 part of 'root.dart';
 
 class Bloc extends flutter_bloc.Bloc<Event, State> {
-  final ClientRepository clientRepository;
+  final client_repository.ClientRepository clientRepository;
 
   Bloc({required this.clientRepository}) : super(const State()) {
     clientRepository.authResponse.stream.listen(
-      (final AuthResponse authResponse) => add(AuthReponse(authResponse)),
+      (final client_repository.AuthResponse authResponse) =>
+          add(AuthResponse(authResponse)),
     );
     clientRepository.message.stream.listen(
       (final messageReader) => add(Message(messageReader)),
     );
-    clientRepository.connectionClosed.stream.listen(
-      (final _) => add(const ConnectionClosed()),
+    clientRepository.connectionState.stream.listen(
+      (final state) {
+        log('Connection state changed: ${state.runtimeType}');
+
+        switch (state) {
+          case final Reconnected _:
+          case final Connected _:
+            {
+              add(ConnectionOpened());
+
+              break;
+            }
+          case final Disconnected disconnected:
+            {
+              add(ConnectionClosed(disconnected.reason));
+
+              break;
+            }
+          case final Reconnecting _:
+            {
+              clientRepository.stop();
+
+              break;
+            }
+        }
+      },
     );
 
     on<Startup>((final event, final emit) async {
-      final String? error = await clientRepository.connect();
+      await Settings.init();
 
-      if (error != null) {
-        log('Failed to connect: $error');
+      final serverAddress = Settings.serverAddress.value;
 
-        // TODO: show error message
-
+      if (serverAddress == null) {
         return;
       }
 
-      final String? loginToken = await SecureStorage.authToken.get();
-
-      if (loginToken == null) {
-        emit(state.copyWith(page: () => Page.login));
-
-        return;
-      }
-
-      clientRepository.loginWithToken(loginToken);
+      add(Connect(serverAddress));
     });
-    on<AuthReponse>((final event, final emit) async {
-      if (event.authResponse.success.v!) {
-        await SecureStorage.authToken.set(event.authResponse.authToken.v!);
+    on<Connect>((final event, final emit) async {
+      String? serverAddress = event.serverAddress;
+
+      if (serverAddress != null) {
+        await Settings.serverAddress.save(serverAddress);
+      } else {
+        serverAddress = state.serverAddress;
+
+        if (serverAddress == null) {
+          log('Failed to connect: serverAddress is null!');
+
+          return;
+        }
+      }
+
+      emit(
+        state.copyWith(
+          serverAddress: () => serverAddress,
+        ),
+      );
+
+      clientRepository.connect(serverAddress);
+    });
+    on<ClearServer>((final event, final emit) async {
+      clientRepository.stop();
+
+      await Settings.serverAddress.save(null);
+      await SecureStorage.authToken.clear();
+
+      emit(
+        state.copyWith(
+          page: () => Page.startup,
+          serverAddress: () => null,
+        ),
+      );
+    });
+    on<AuthResponse>((final event, final emit) async {
+      if (event.authResponse.success ?? false) {
+        await SecureStorage.authToken.set(event.authResponse.authToken!);
 
         emit(state.copyWith(page: () => Page.home));
 
@@ -52,15 +103,15 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
       final BinaryStream data = event.messageReader.data;
 
       switch (event.messageReader.command) {
-        case IncomingMessages.productInfo:
+        case client_repository.IncomingMessages.productInfo:
           {
-            final productWidth = data.readFloatLE();
-            final productLength = data.readFloatLE();
-            final productHeight = data.readFloatLE();
+            final productWidth = data.readFloat32LE();
+            final productLength = data.readFloat32LE();
+            final productHeight = data.readFloat32LE();
             final productManufacturer = data.readString();
             final rackId = data.readString();
-            final productShelf = data.readIntLE();
-            final productSpot = data.readIntLE();
+            final productShelf = data.readInt32LE();
+            final productSpot = data.readInt32LE();
             final productCategory = data.readString();
             final productName = data.readString();
 
@@ -90,24 +141,33 @@ class Bloc extends flutter_bloc.Bloc<Event, State> {
           }
       }
     });
+    on<ConnectionOpened>((final event, final emit) async {
+      final String? loginToken = await SecureStorage.authToken.get();
+
+      if (loginToken == null) {
+        emit(state.copyWith(page: () => Page.login));
+
+        return;
+      }
+
+      clientRepository.loginWithToken(loginToken);
+    });
     on<ConnectionClosed>(
       (final event, final emit) async {
         emit(
           state.copyWith(
-            page: () => Page.startup,
+            page: () =>
+                event.error == null ? Page.startup : Page.connectionLost,
+            serverConnectionError: () => event.error,
             scannedProduct: () => null,
           ),
         );
 
-        await clientRepository.stop();
-
-        add(const Startup());
+        clientRepository.stop();
       },
     );
     on<SubmitLoginCode>((final event, final emit) {
       clientRepository.loginWithCode(event.code);
-
-      emit(state.copyWith(page: () => Page.startup));
     });
     on<BeginScan>(
       (final event, final emit) =>

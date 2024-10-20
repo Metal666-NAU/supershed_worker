@@ -1,18 +1,16 @@
-import 'package:cv/cv.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'bloc/root/root.dart' as root;
 import 'data/client_repository.dart';
+import 'pages/connection_lost.dart';
 import 'pages/home.dart';
 import 'pages/login.dart';
 import 'pages/scanner.dart';
 import 'pages/startup.dart';
 
 void main() {
-  cvAddConstructor(AuthRequest.new);
-  cvAddConstructor(AuthResponse.new);
-
   runApp(const MainApp());
 }
 
@@ -47,9 +45,10 @@ class MainApp extends StatelessWidget {
               previous.page != current.page,
           builder: (final context, final state) => switch (state.page) {
             root.Page.startup => const StartupPage(),
+            root.Page.connectionLost => const ConnectionLostPage(),
             root.Page.login => const LoginPage(),
             root.Page.home => const HomePage(),
-            root.Page.scanner => const ScannnerPage(),
+            root.Page.scanner => const ScannerPage(),
           },
         ),
       );

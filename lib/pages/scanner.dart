@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -7,8 +8,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../bloc/root/root.dart' as root;
 
-class ScannnerPage extends HookWidget {
-  const ScannnerPage({super.key});
+class ScannerPage extends HookWidget {
+  const ScannerPage({super.key});
 
   @override
   Widget build(final context) {
@@ -25,16 +26,16 @@ class ScannnerPage extends HookWidget {
       height: scanRectSide,
     );
 
-    return pageRoot(
-      scannerContainer(
-        scanner(context, scanRect),
-        overlay(scanRect),
-        controls(
-          backButton(context),
-          scanWindowFrame(context, scanRect),
+    return _pageRoot(
+      _scannerContainer(
+        _scanner(context, scanRect),
+        _overlay(scanRect),
+        _controls(
+          _backButton(context),
+          _scanWindowFrame(context, scanRect),
         ),
       ),
-      productInfoPanel(
+      _productInfoPanel(
         context,
         nameController,
         categoryController,
@@ -42,7 +43,7 @@ class ScannnerPage extends HookWidget {
     );
   }
 
-  Widget pageRoot(
+  Widget _pageRoot(
     final Widget scannerContainer,
     final Widget productInfoPanel,
   ) =>
@@ -76,7 +77,7 @@ class ScannnerPage extends HookWidget {
         ),
       );
 
-  Widget scannerContainer(
+  Widget _scannerContainer(
     final Widget scanner,
     final Widget overlay,
     final Widget controls,
@@ -89,7 +90,7 @@ class ScannnerPage extends HookWidget {
         ],
       );
 
-  Widget scanner(
+  Widget _scanner(
     final BuildContext context,
     final Rect scanRect,
   ) =>
@@ -112,7 +113,7 @@ class ScannnerPage extends HookWidget {
         },
       );
 
-  Widget overlay(final Rect scanRect) => ColorFiltered(
+  Widget _overlay(final Rect scanRect) => ColorFiltered(
         colorFilter: const ColorFilter.mode(
           Colors.black54,
           BlendMode.srcOut,
@@ -139,7 +140,7 @@ class ScannnerPage extends HookWidget {
         ),
       );
 
-  Widget controls(
+  Widget _controls(
     final Widget backButton,
     final Widget scanWindowFrame,
   ) =>
@@ -155,13 +156,13 @@ class ScannnerPage extends HookWidget {
         ),
       );
 
-  Widget backButton(final BuildContext context) => TextButton.icon(
+  Widget _backButton(final BuildContext context) => TextButton.icon(
         onPressed: () => context.read<root.Bloc>().add(const root.EndScan()),
         icon: const Icon(Icons.arrow_circle_left_outlined),
         label: const Text('Back'),
       );
 
-  Widget scanWindowFrame(
+  Widget _scanWindowFrame(
     final BuildContext context,
     final Rect scanRect,
   ) =>
@@ -193,7 +194,7 @@ class ScannnerPage extends HookWidget {
         ),
       );
 
-  Widget productInfoPanel(
+  Widget _productInfoPanel(
     final BuildContext context,
     final TextEditingController nameController,
     final TextEditingController categoryController,

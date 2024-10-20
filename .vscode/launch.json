@@ -1,0 +1,25 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "supershed_worker",
+			"request": "launch",
+			"type": "dart",
+			"toolArgs": ["--enable-experiment=macros"]
+		},
+		{
+			"name": "supershed_worker (profile mode)",
+			"request": "launch",
+			"type": "dart",
+			"flutterMode": "profile",
+			"toolArgs": ["--enable-experiment=macros"]
+		},
+		{
+			"name": "supershed_worker (release mode)",
+			"request": "launch",
+			"type": "dart",
+			"flutterMode": "release",
+			"toolArgs": ["--enable-experiment=macros"]
+		}
+	]
+}

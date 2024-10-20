@@ -8,20 +8,36 @@ class Startup extends Event {
   const Startup();
 }
 
-class AuthReponse extends Event {
-  final AuthResponse authResponse;
+class Connect extends Event {
+  final String? serverAddress;
 
-  const AuthReponse(this.authResponse);
+  const Connect([this.serverAddress]);
+}
+
+class ClearServer extends Event {
+  const ClearServer();
+}
+
+class AuthResponse extends Event {
+  final client_repository.AuthResponse authResponse;
+
+  const AuthResponse(this.authResponse);
 }
 
 class Message extends Event {
-  final MessageReader messageReader;
+  final client_repository.MessageReader messageReader;
 
   const Message(this.messageReader);
 }
 
+class ConnectionOpened extends Event {
+  const ConnectionOpened();
+}
+
 class ConnectionClosed extends Event {
-  const ConnectionClosed();
+  final String? error;
+
+  const ConnectionClosed([this.error]);
 }
 
 class SubmitLoginCode extends Event {
